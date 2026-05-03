@@ -511,6 +511,21 @@
   }
   .disclaimer strong { color: var(--amber); letter-spacing: 0.1em; }
 
+  /* ── VISIT COUNTER ── */
+  .visit-counter {
+    position: fixed;
+    bottom: 10px;
+    left: 12px;
+    font-size: 0.55rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    z-index: 50;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .visit-counter:hover { opacity: 1; }
+
   /* ── TOAST NOTIFICATIONS ── */
   #toast-container {
     position: fixed;
@@ -1211,6 +1226,20 @@ function dismissStickyAd() {
 
 // Add padding class when sticky ad is present
 document.body.classList.add('has-sticky-ad');
+</script>
+
+<div class="visit-counter" id="visit-counter"></div>
+
+<script>
+(function() {
+  try {
+    const key = 'signum_visits';
+    const count = (parseInt(localStorage.getItem(key) || '0')) + 1;
+    localStorage.setItem(key, count);
+    const el = document.getElementById('visit-counter');
+    if (el) el.textContent = 'VISITS: ' + count.toLocaleString();
+  } catch(e) {}
+})();
 </script>
 </body>
 </html>
