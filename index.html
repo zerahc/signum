@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SIGNUM — Crypto Signals</title>
+<meta name="description" content="Free real-time crypto trading signals for Bitcoin, Ethereum, BNB, Solana and XRP. RSI, MACD, EMA indicators."/>
+
+<!-- ============================================================
+  GOOGLE ADSENSE — STEP 1:
+  Replace YOUR_PUBLISHER_ID below with your actual AdSense ID
+  e.g. ca-pub-1234567890123456
+  Then uncomment the script tag.
+  ============================================================ -->
+<!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_PUBLISHER_ID" crossorigin="anonymous"></script> -->
+
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #080a0f;
+    --bg2: #0d1017;
+    --bg3: #111620;
+    --border: #1e2a3a;
+    --amber: #f59e0b;
+    --green: #22c55e;
+    --red: #ef4444;
+    --blue: #38bdf8;
+    --muted: #4a5568;
+    --text: #cbd5e1;
+    --dim: #64748b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Noise texture */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9998;
+    opacity: 0.4;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 1.6rem;
+    letter-spacing: 0.2em;
+    color: var(--amber);
+    text-shadow: 0 0 20px rgba(245,158,11,0.4);
+  }
+
+  .logo span {
+    color: var(--text);
+    font-weight: 400;
+    font-size: 0.7rem;
+    display: block;
+    letter-spacing: 0.3em;
+    margin-top: 2px;
+    opacity: 0.6;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 0.75rem;
+    color: var(--dim);
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+    display: inline-block;
+    margin-right: 6px;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  #last-updated {
+    color: var(--dim);
+    font-size: 0.7rem;
+  }
+
+  .refresh-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--amber);
+    padding: 6px 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: all 0.2s;
+  }
+  .refresh-btn:hover {
+    background: rgba(245,158,11,0.1);
+    border-color: var(--amber);
+    box-shadow: 0 0 10px rgba(245,158,11,0.2);
+  }
+  .refresh-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+
+  .section-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: var(--dim);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 2px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+
+  .card {
+    background: var(--bg2);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.2s;
+    animation: fadeIn 0.5s ease both;
+  }
+
+  .card:hover { background: var(--bg3); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card:nth-child(1) { animation-delay: 0.05s; }
+  .card:nth-child(2) { animation-delay: 0.1s; }
+  .card:nth-child(3) { animation-delay: 0.15s; }
+  .card:nth-child(4) { animation-delay: 0.2s; }
+  .card:nth-child(5) { animation-delay: 0.25s; }
+
+  .card-accent {
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 100%;
+  }
+  .card-accent.buy { background: var(--green); box-shadow: 2px 0 12px rgba(34,197,94,0.3); }
+  .card-accent.sell { background: var(--red); box-shadow: 2px 0 12px rgba(239,68,68,0.3); }
+  .card-accent.hold { background: var(--amber); box-shadow: 2px 0 12px rgba(245,158,11,0.3); }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+
+  .coin-name {
+    font-family: 'Orbitron', monospace;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #e2e8f0;
+    letter-spacing: 0.05em;
+  }
+
+  .coin-id {
+    font-size: 0.65rem;
+    color: var(--dim);
+    letter-spacing: 0.2em;
+    margin-top: 3px;
+  }
+
+  .signal-badge {
+    padding: 4px 12px;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    border: 1px solid;
+  }
+  .signal-badge.buy { color: var(--green); border-color: var(--green); background: rgba(34,197,94,0.08); }
+  .signal-badge.sell { color: var(--red); border-color: var(--red); background: rgba(239,68,68,0.08); }
+  .signal-badge.hold { color: var(--amber); border-color: var(--amber); background: rgba(245,158,11,0.08); }
+
+  .price-row {
+    margin-bottom: 20px;
+  }
+
+  .price-main {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    letter-spacing: 0.02em;
+  }
+
+  .price-change {
+    font-size: 0.8rem;
+    margin-top: 4px;
+  }
+  .price-change.pos { color: var(--green); }
+  .price-change.neg { color: var(--red); }
+
+  .indicators {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .indicator {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+  }
+
+  .indicator-label {
+    font-size: 0.6rem;
+    color: var(--dim);
+    letter-spacing: 0.2em;
+    margin-bottom: 4px;
+  }
+
+  .indicator-value {
+    font-size: 0.85rem;
+    color: var(--text);
+  }
+  .indicator-value.overbought { color: var(--red); }
+  .indicator-value.oversold { color: var(--green); }
+  .indicator-value.neutral { color: var(--amber); }
+  .indicator-value.bullish { color: var(--green); }
+  .indicator-value.bearish { color: var(--red); }
+
+  .signal-reason {
+    font-size: 0.68rem;
+    color: var(--dim);
+    line-height: 1.6;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+    letter-spacing: 0.05em;
+  }
+
+  /* Loading state */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+    transition: opacity 0.5s;
+  }
+
+  .loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .loading-logo {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 2.5rem;
+    color: var(--amber);
+    letter-spacing: 0.3em;
+    text-shadow: 0 0 40px rgba(245,158,11,0.5);
+    margin-bottom: 30px;
+    animation: glow 1.5s ease-in-out infinite alternate;
+  }
+
+  @keyframes glow {
+    from { text-shadow: 0 0 20px rgba(245,158,11,0.3); }
+    to { text-shadow: 0 0 60px rgba(245,158,11,0.8); }
+  }
+
+  .loading-bar-wrap {
+    width: 200px;
+    height: 2px;
+    background: var(--border);
+    overflow: hidden;
+  }
+
+  .loading-bar {
+    height: 100%;
+    background: var(--amber);
+    width: 0%;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 10px var(--amber);
+  }
+
+  .loading-text {
+    font-size: 0.65rem;
+    color: var(--dim);
+    letter-spacing: 0.3em;
+    margin-top: 16px;
+  }
+
+  /* Error state */
+  .error-card {
+    background: rgba(239,68,68,0.05);
+    border: 1px solid rgba(239,68,68,0.3);
+    padding: 20px 24px;
+    color: var(--red);
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 20px;
+  }
+
+  /* Disclaimer */
+  .disclaimer {
+    border: 1px solid var(--border);
+    padding: 16px 20px;
+    font-size: 0.65rem;
+    color: var(--muted);
+    line-height: 1.7;
+    letter-spacing: 0.05em;
+  }
+
+  .disclaimer strong {
+    color: var(--amber);
+    letter-spacing: 0.1em;
+  }
+
+  /* Skeleton */
+  .skeleton {
+    background: linear-gradient(90deg, var(--bg2) 25%, var(--bg3) 50%, var(--bg2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    height: 14px;
+    margin-bottom: 8px;
+    border-radius: 2px;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Summary bar */
+  .summary-bar {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 32px;
+    background: var(--border);
+  }
+
+  .summary-item {
+    flex: 1;
+    background: var(--bg2);
+    padding: 14px 20px;
+    text-align: center;
+  }
+
+  .summary-count {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .summary-count.buy { color: var(--green); text-shadow: 0 0 20px rgba(34,197,94,0.4); }
+  .summary-count.sell { color: var(--red); text-shadow: 0 0 20px rgba(239,68,68,0.4); }
+  .summary-count.hold { color: var(--amber); text-shadow: 0 0 20px rgba(245,158,11,0.4); }
+
+  .summary-label {
+    font-size: 0.6rem;
+    color: var(--dim);
+    letter-spacing: 0.25em;
+  }
+
+  @media (max-width: 600px) {
+    header { padding: 16px 20px; }
+    .logo { font-size: 1.2rem; }
+    main { padding: 24px 12px; }
+    .price-main { font-size: 1.2rem; }
+  }
+
+  /* ── Google AdSense Zones ── */
+  .ad-banner {
+    width: 100%;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-style: dashed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    margin-bottom: 28px;
+    min-height: 90px;
+    position: relative;
+  }
+
+  .ad-banner .ad-label {
+    position: absolute;
+    top: 6px; left: 10px;
+    font-size: 0.5rem;
+    color: var(--border);
+    letter-spacing: 0.15em;
+  }
+
+  /* Sticky footer ad */
+  .ad-footer-sticky {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 70px;
+    z-index: 200;
+    padding: 8px;
+  }
+
+  .ad-footer-sticky .ad-close {
+    position: absolute;
+    right: 12px; top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    padding: 4px 8px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+  }
+  .ad-footer-sticky .ad-close:hover { border-color: var(--amber); color: var(--amber); }
+
+  /* push content up so sticky footer doesn't overlap */
+  body.has-sticky-ad main { padding-bottom: 100px; }
+</style>
+</head>
+<body>
+
+<!-- Loading screen -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-logo">SIGNUM</div>
+  <div class="loading-bar-wrap">
+    <div class="loading-bar" id="loading-bar"></div>
+  </div>
+  <div class="loading-text" id="loading-text">INITIALIZING...</div>
+</div>
+
+<header>
+  <div class="logo">
+    SIGNUM
+    <span>CRYPTO SIGNAL INTELLIGENCE</span>
+  </div>
+  <div class="header-right">
+    <div><span class="status-dot"></span>LIVE</div>
+    <div id="last-updated">—</div>
+    <button class="refresh-btn" id="refresh-btn" onclick="loadData()">↻ REFRESH</button>
+  </div>
+</header>
+
+<main>
+  <div id="error-area"></div>
+
+  <div class="section-label">MARKET SUMMARY</div>
+  <div class="summary-bar" id="summary-bar">
+    <div class="summary-item"><div class="summary-count buy" id="sum-buy">—</div><div class="summary-label">BUY</div></div>
+    <div class="summary-item"><div class="summary-count hold" id="sum-hold">—</div><div class="summary-label">HOLD</div></div>
+    <div class="summary-item"><div class="summary-count sell" id="sum-sell">—</div><div class="summary-label">SELL</div></div>
+  </div>
+
+  <div class="section-label">SIGNAL FEED — TOP 5 ASSETS</div>
+  <div class="cards-grid" id="cards-grid">
+    <!-- Cards injected here -->
+  </div>
+
+  <!-- ============================================================
+    GOOGLE ADSENSE — IN-CONTENT BANNER (728x90 leaderboard / responsive)
+    Replace YOUR_PUBLISHER_ID and YOUR_AD_SLOT_ID, then uncomment.
+    ============================================================ -->
+  <div class="ad-banner" id="ad-content-banner">
+    <span class="ad-label">ADVERTISEMENT</span>
+    <!-- UNCOMMENT BELOW after replacing IDs:
+    <ins class="adsbygoogle"
+      style="display:block"
+      data-ad-client="ca-pub-YOUR_PUBLISHER_ID"
+      data-ad-slot="YOUR_AD_SLOT_ID"
+      data-ad-format="auto"
+      data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    -->
+    <span>[ AD SLOT — CONFIGURE ADSENSE ]</span>
+  </div>
+
+  <div class="disclaimer">
+    <strong>⚠ DISCLAIMER</strong> — SIGNUM generates signals based on technical indicators (RSI, MACD, EMA). 
+    These are NOT financial advice. Crypto markets are highly volatile. 
+    Always do your own research before making any investment decisions. 
+    Past performance does not guarantee future results.
+  </div>
+</main>
+
+<!-- ============================================================
+  GOOGLE ADSENSE — STICKY FOOTER AD (320x50 mobile / 728x90 desktop)
+  Replace YOUR_PUBLISHER_ID and YOUR_AD_SLOT_ID_FOOTER, then uncomment.
+  ============================================================ -->
+<div class="ad-footer-sticky" id="ad-footer-sticky">
+  <!-- UNCOMMENT BELOW after replacing IDs:
+  <ins class="adsbygoogle"
+    style="display:inline-block;width:728px;height:90px"
+    data-ad-client="ca-pub-YOUR_PUBLISHER_ID"
+    data-ad-slot="YOUR_AD_SLOT_ID_FOOTER"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  -->
+  <span style="font-size:0.6rem;letter-spacing:0.2em;color:var(--muted);">[ STICKY FOOTER AD SLOT — CONFIGURE ADSENSE ]</span>
+  <button class="ad-close" onclick="dismissStickyAd()">✕ CLOSE</button>
+</div>
+
+<script>
+const COINS = [
+  { id: 'bitcoin',  symbol: 'BTC', name: 'Bitcoin' },
+  { id: 'ethereum', symbol: 'ETH', name: 'Ethereum' },
+  { id: 'binancecoin', symbol: 'BNB', name: 'BNB' },
+  { id: 'solana',   symbol: 'SOL', name: 'Solana' },
+  { id: 'ripple',   symbol: 'XRP', name: 'XRP' },
+];
+
+function calcRSI(prices, period = 14) {
+  if (prices.length < period + 1) return null;
+  let gains = 0, losses = 0;
+  for (let i = 1; i <= period; i++) {
+    const diff = prices[i] - prices[i - 1];
+    if (diff > 0) gains += diff; else losses -= diff;
+  }
+  let avgGain = gains / period;
+  let avgLoss = losses / period;
+  for (let i = period + 1; i < prices.length; i++) {
+    const diff = prices[i] - prices[i - 1];
+    avgGain = (avgGain * (period - 1) + Math.max(diff, 0)) / period;
+    avgLoss = (avgLoss * (period - 1) + Math.max(-diff, 0)) / period;
+  }
+  if (avgLoss === 0) return 100;
+  return 100 - (100 / (1 + avgGain / avgLoss));
+}
+
+function calcEMA(prices, period) {
+  if (prices.length < period) return null;
+  const k = 2 / (period + 1);
+  let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < prices.length; i++) {
+    ema = prices[i] * k + ema * (1 - k);
+  }
+  return ema;
+}
+
+function calcMACD(prices) {
+  const ema12 = calcEMA(prices, 12);
+  const ema26 = calcEMA(prices, 26);
+  if (ema12 === null || ema26 === null) return null;
+  return ema12 - ema26;
+}
+
+function generateSignal(rsi, macd, price, ema50) {
+  let score = 0;
+  const reasons = [];
+
+  if (rsi !== null) {
+    if (rsi < 35) { score += 2; reasons.push(`RSI ${rsi.toFixed(1)} — oversold territory`); }
+    else if (rsi < 45) { score += 1; reasons.push(`RSI ${rsi.toFixed(1)} — approaching oversold`); }
+    else if (rsi > 65) { score -= 2; reasons.push(`RSI ${rsi.toFixed(1)} — overbought territory`); }
+    else if (rsi > 55) { score -= 1; reasons.push(`RSI ${rsi.toFixed(1)} — approaching overbought`); }
+    else { reasons.push(`RSI ${rsi.toFixed(1)} — neutral zone`); }
+  }
+
+  if (macd !== null) {
+    if (macd > 0) { score += 1; reasons.push('MACD bullish crossover signal'); }
+    else { score -= 1; reasons.push('MACD bearish crossover signal'); }
+  }
+
+  if (ema50 !== null) {
+    if (price > ema50) { score += 1; reasons.push(`Price above EMA50 — uptrend`); }
+    else { score -= 1; reasons.push(`Price below EMA50 — downtrend`); }
+  }
+
+  let signal;
+  if (score >= 2) signal = 'buy';
+  else if (score <= -2) signal = 'sell';
+  else signal = 'hold';
+
+  return { signal, reasons };
+}
+
+function fmt(n) {
+  if (n >= 1000) return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  if (n >= 1) return '$' + n.toFixed(4);
+  return '$' + n.toFixed(6);
+}
+
+function setLoading(pct, text) {
+  document.getElementById('loading-bar').style.width = pct + '%';
+  document.getElementById('loading-text').textContent = text;
+}
+
+async function loadData() {
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true;
+
+  const overlay = document.getElementById('loading-overlay');
+  overlay.classList.remove('hidden');
+  document.getElementById('loading-bar').style.width = '0%';
+
+  document.getElementById('error-area').innerHTML = '';
+  document.getElementById('cards-grid').innerHTML = '';
+
+  setLoading(10, 'FETCHING MARKET DATA...');
+
+  try {
+    // Fetch 30-day OHLC for each coin
+    const ids = COINS.map(c => c.id).join(',');
+
+    setLoading(25, 'LOADING PRICE HISTORY...');
+
+    // Fetch current prices + 24h change
+    const priceRes = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`
+    );
+    if (!priceRes.ok) throw new Error('Price API failed');
+    const priceData = await priceRes.json();
+
+    setLoading(50, 'CALCULATING INDICATORS...');
+
+    // Fetch OHLC for each coin (30 days)
+    const ohlcPromises = COINS.map(c =>
+      fetch(`https://api.coingecko.com/api/v3/coins/${c.id}/ohlc?vs_currency=usd&days=30`)
+        .then(r => r.json())
+        .catch(() => [])
+    );
+    const ohlcAll = await Promise.all(ohlcPromises);
+
+    setLoading(80, 'GENERATING SIGNALS...');
+
+    const results = COINS.map((coin, i) => {
+      const price = priceData[coin.id]?.usd ?? 0;
+      const change24h = priceData[coin.id]?.usd_24h_change ?? 0;
+      const ohlc = ohlcAll[i];
+      const closes = ohlc.map(c => c[4]);
+
+      const rsi = calcRSI(closes);
+      const macd = calcMACD(closes);
+      const ema50 = calcEMA(closes, Math.min(50, closes.length));
+
+      const { signal, reasons } = generateSignal(rsi, macd, price, ema50);
+
+      return { coin, price, change24h, rsi, macd, ema50, signal, reasons };
+    });
+
+    setLoading(100, 'DONE');
+
+    setTimeout(() => {
+      overlay.classList.add('hidden');
+      renderCards(results);
+      btn.disabled = false;
+
+      const now = new Date();
+      document.getElementById('last-updated').textContent =
+        'UPDATED ' + now.toLocaleTimeString('en-US', { hour12: false });
+    }, 400);
+
+  } catch (err) {
+    overlay.classList.add('hidden');
+    document.getElementById('error-area').innerHTML = `
+      <div class="error-card">
+        ⚠ SIGNAL FETCH FAILED — ${err.message}. CoinGecko free API has rate limits. Wait 60s and retry.
+      </div>`;
+    btn.disabled = false;
+  }
+}
+
+function renderCards(results) {
+  const grid = document.getElementById('cards-grid');
+
+  let buyCount = 0, holdCount = 0, sellCount = 0;
+
+  results.forEach(r => {
+    if (r.signal === 'buy') buyCount++;
+    else if (r.signal === 'sell') sellCount++;
+    else holdCount++;
+
+    const changeClass = r.change24h >= 0 ? 'pos' : 'neg';
+    const changeSign = r.change24h >= 0 ? '+' : '';
+
+    const rsiClass = r.rsi === null ? '' :
+      r.rsi > 65 ? 'overbought' : r.rsi < 35 ? 'oversold' : 'neutral';
+
+    const macdClass = r.macd === null ? '' : r.macd > 0 ? 'bullish' : 'bearish';
+    const macdLabel = r.macd === null ? 'N/A' : (r.macd > 0 ? '▲ BULLISH' : '▼ BEARISH');
+    const emaClass = r.ema50 === null ? '' : r.price > r.ema50 ? 'bullish' : 'bearish';
+    const emaLabel = r.ema50 === null ? 'N/A' : (r.price > r.ema50 ? '▲ ABOVE' : '▼ BELOW');
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-accent ${r.signal}"></div>
+      <div class="card-header">
+        <div>
+          <div class="coin-name">${r.coin.name}</div>
+          <div class="coin-id">${r.coin.symbol} / USD</div>
+        </div>
+        <div class="signal-badge ${r.signal}">${r.signal.toUpperCase()}</div>
+      </div>
+      <div class="price-row">
+        <div class="price-main">${fmt(r.price)}</div>
+        <div class="price-change ${changeClass}">${changeSign}${r.change24h.toFixed(2)}% (24H)</div>
+      </div>
+      <div class="indicators">
+        <div class="indicator">
+          <div class="indicator-label">RSI (14)</div>
+          <div class="indicator-value ${rsiClass}">${r.rsi !== null ? r.rsi.toFixed(1) : 'N/A'}</div>
+        </div>
+        <div class="indicator">
+          <div class="indicator-label">MACD</div>
+          <div class="indicator-value ${macdClass}">${macdLabel}</div>
+        </div>
+        <div class="indicator">
+          <div class="indicator-label">EMA 50</div>
+          <div class="indicator-value ${emaClass}">${emaLabel}</div>
+        </div>
+        <div class="indicator">
+          <div class="indicator-label">SIGNAL STRENGTH</div>
+          <div class="indicator-value ${r.signal === 'buy' ? 'bullish' : r.signal === 'sell' ? 'overbought' : 'neutral'}">
+            ${r.signal === 'buy' ? '████ STRONG' : r.signal === 'sell' ? '████ STRONG' : '██░░ WEAK'}
+          </div>
+        </div>
+      </div>
+      <div class="signal-reason">${r.reasons.join(' · ')}</div>
+    `;
+    grid.appendChild(card);
+  });
+
+  document.getElementById('sum-buy').textContent = buyCount;
+  document.getElementById('sum-hold').textContent = holdCount;
+  document.getElementById('sum-sell').textContent = sellCount;
+}
+
+// Auto-refresh every 5 minutes
+setInterval(loadData, 5 * 60 * 1000);
+
+loadData();
+
+// Sticky footer ad dismiss
+function dismissStickyAd() {
+  const el = document.getElementById('ad-footer-sticky');
+  if (el) { el.style.display = 'none'; document.body.classList.remove('has-sticky-ad'); }
+}
+
+// Add padding class when sticky ad is present
+document.body.classList.add('has-sticky-ad');
+</script>
+</body>
+</html>
